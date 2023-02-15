@@ -62,8 +62,26 @@ ORDER BY SUM(total_claim_count);
 
 -- 3. 
 --     a. Which drug (generic_name) had the highest total drug cost?
+SELECT generic_name,
+SUM(total_drug_cost)
+FROM drug
+	INNER JOIN prescription
+	USING (drug_name)
+GROUP BY generic_name
+ORDER BY SUM(total_drug_cost) DESC;
+
+--Insulin Glargine had the highest toal drug cost at 104,264,066.35 monies
 
 --     b. Which drug (generic_name) has the hightest total cost per day? **Bonus: Round your cost per day column to 2 decimal places. Google ROUND to see how this works.**
+SELECT generic_name,
+ROUND(SUM(total_drug_cost)/365, 2) AS cost_per_day
+FROM drug
+	INNER JOIN prescription
+	USING (drug_name)
+GROUP BY generic_name
+ORDER BY SUM(total_drug_cost) DESC;
+
+--Insulin Glargine has the highest drug cost per day at 285,654.98 monies a day.
 
 -- 4. 
 --     a. For each drug in the drug table, return the drug name and then a column named 'drug_type' which says 'opioid' for drugs which have opioid_drug_flag = 'Y', says 'antibiotic' for those drugs which have antibiotic_drug_flag = 'Y', and says 'neither' for all other drugs.
