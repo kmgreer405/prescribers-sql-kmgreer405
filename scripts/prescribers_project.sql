@@ -37,9 +37,9 @@ ORDER BY SUM(total_claim_count) DESC;
 SELECT specialty_description,
 SUM(total_claim_count)
 FROM prescriber
-	INNER JOIN prescription
+	LEFT JOIN prescription
 	USING (npi)
-	INNER JOIN drug
+	LEFT JOIN drug
 	USING (drug_name)
 WHERE opioid_drug_flag = 'Y'
 GROUP BY specialty_description
@@ -107,11 +107,34 @@ ORDER BY SUM(total_drug_cost) DESC;
 
 -- 5. 
 --     a. How many CBSAs are in Tennessee? **Warning:** The cbsa table contains information for all states, not just Tennessee.
+SELECT COUNT(*)
+FROM cbsa
+WHERE cbsaname LIKE '%TN';
+
+--There are 33 cbsa's in Tennessee
 
 --     b. Which cbsa has the largest combined population? Which has the smallest? Report the CBSA name and total population.
+SELECT cbsaname,
+SUM(population) AS total_pop
+FROM cbsa
+	INNER JOIN population
+	USING(fipscounty)
+GROUP BY cbsaname
+ORDER BY SUM(population) DESC;
+
+--Nashville-Davidson-Murfreesboro-Franklin, TN has the largest combined population at 1,830,410 and Morristown, TN has the lowest combined population at 116,352
 
 --     c. What is the largest (in terms of population) county which is not included in a CBSA? Report the county name and population.
-
+SELECT county,
+SUM(population) AS total_pop
+FROM cbsa
+	LEFT JOIN population
+	USING(fipscounty)
+	FULL JOIN fips_county
+	USING (fipscounty)
+WHERE population IS NULL
+GROUP BY county
+ORDER BY SUM(population) DESC;
 -- 6. 
 --     a. Find all rows in the prescription table where total_claims is at least 3000. Report the drug_name and the total_claim_count.
 
