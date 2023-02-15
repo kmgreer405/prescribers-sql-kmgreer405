@@ -23,10 +23,40 @@ LIMIT 1;
 
 -- 2. 
 --     a. Which specialty had the most total number of claims (totaled over all drugs)?
+SELECT specialty_description,
+SUM(total_claim_count)
+FROM prescriber
+	INNER JOIN prescription
+	USING (npi)
+GROUP BY specialty_description
+ORDER BY SUM(total_claim_count) DESC;
+
+--Family Practice has the most total claims at 9,752,347 total claims
 
 --     b. Which specialty had the most total number of claims for opioids?
+SELECT specialty_description,
+SUM(total_claim_count)
+FROM prescriber
+	INNER JOIN prescription
+	USING (npi)
+	INNER JOIN drug
+	USING (drug_name)
+WHERE opioid_drug_flag = 'Y'
+GROUP BY specialty_description
+ORDER BY SUM(total_claim_count) DESC;
+
+--Nurse Practitioner has the highest number of claims involving opioids at 900,845 claims.
 
 --     c. **Challenge Question:** Are there any specialties that appear in the prescriber table that have no associated prescriptions in the prescription table?
+SELECT specialty_description,
+SUM(total_claim_count)
+FROM prescriber
+	LEFT JOIN prescription
+	USING (npi)
+GROUP BY specialty_description
+ORDER BY SUM(total_claim_count);
+
+--No. Thoracic Surgery, Clinical Psychologist and Colon & Rectal Surgery all have the least prescriptions at 11 each.
 
 --     d. **Difficult Bonus:** *Do not attempt until you have solved all other problems!* For each specialty, report the percentage of total claims by that specialty which are for opioids. Which specialties have a high percentage of opioids?
 
