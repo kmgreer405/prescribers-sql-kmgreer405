@@ -117,24 +117,28 @@ WHERE cbsaname LIKE '%TN';
 SELECT cbsaname,
 SUM(population) AS total_pop
 FROM cbsa
-	INNER JOIN population
+	LEFT JOIN population
 	USING(fipscounty)
+WHERE population IS NOT NULL
 GROUP BY cbsaname
 ORDER BY SUM(population) DESC;
 
 --Nashville-Davidson-Murfreesboro-Franklin, TN has the largest combined population at 1,830,410 and Morristown, TN has the lowest combined population at 116,352
 
 --     c. What is the largest (in terms of population) county which is not included in a CBSA? Report the county name and population.
-SELECT county,
-SUM(population) AS total_pop
-FROM cbsa
-	LEFT JOIN population
+SELECT county AS county_name,
+fipscounty,
+population
+FROM population
+	INNER JOIN fips_county
 	USING(fipscounty)
-	FULL JOIN fips_county
-	USING (fipscounty)
-WHERE population IS NULL
-GROUP BY county
-ORDER BY SUM(population) DESC;
+WHERE fipscounty NOT IN
+	(SELECT fipscounty
+	FROM cbsa)
+ORDER BY population DESC;
+
+--The county with the highest population not in the CBSA is Sevier county.	
+
 -- 6. 
 --     a. Find all rows in the prescription table where total_claims is at least 3000. Report the drug_name and the total_claim_count.
 
