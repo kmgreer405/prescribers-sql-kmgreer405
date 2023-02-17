@@ -127,7 +127,6 @@ ORDER BY SUM(population) DESC;
 
 --     c. What is the largest (in terms of population) county which is not included in a CBSA? Report the county name and population.
 SELECT county AS county_name,
-fipscounty,
 population
 FROM population
 	INNER JOIN fips_county
@@ -137,7 +136,7 @@ WHERE fipscounty NOT IN
 	FROM cbsa)
 ORDER BY population DESC;
 
---The county with the highest population not in the CBSA is Sevier county.	
+--The county with the highest population not in a CBSA is Sevier county at 95,523.	
 
 -- 6. 
 --     a. Find all rows in the prescription table where total_claims is at least 3000. Report the drug_name and the total_claim_count.
@@ -172,7 +171,26 @@ WHERE total_claim_count >= 3000;
 -- 7. The goal of this exercise is to generate a full list of all pain management specialists in Nashville and the number of claims they had for each opioid. **Hint:** The results from all 3 parts will have 637 rows.
 
 --     a. First, create a list of all npi/drug_name combinations for pain management specialists (specialty_description = 'Pain Managment') in the city of Nashville (nppes_provider_city = 'NASHVILLE'), where the drug is an opioid (opiod_drug_flag = 'Y'). **Warning:** Double-check your query before running it. You will only need to use the prescriber and drug tables since you don't need the claims numbers yet.
+SELECT p.npi,
+d.drug_name
+FROM prescriber AS p
+	CROSS JOIN drug AS d
+WHERE specialty_description = 'Pain Management'
+AND nppes_provider_city = 'NASHVILLE'
+AND opioid_drug_flag = 'Y';
 
 --     b. Next, report the number of claims per drug per prescriber. Be sure to include all combinations, whether or not the prescriber had any claims. You should report the npi, the drug name, and the number of claims (total_claim_count).
-    
+SELECT p.npi,
+d.drug_name,
+SUM(p2.total_claim_count) AS total_claim_count
+FROM prescriber AS p
+	CROSS JOIN drug AS d
+	FULL JOIN prescription AS p2
+	USING(npi)
+WHERE specialty_description = 'Pain Management'
+AND nppes_provider_city = 'NASHVILLE'
+AND opioid_drug_flag = 'Y'
+GROUP BY p.npi, d.drug_name
+ORDER BY SUM(total_claim_count);
+
 --     c. Finally, if you have not done so already, fill in any missing values for total_claim_count with 0. Hint - Google the COALESCE function.
