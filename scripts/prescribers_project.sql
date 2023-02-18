@@ -59,6 +59,26 @@ ORDER BY SUM(total_claim_count);
 --No. Thoracic Surgery, Clinical Psychologist and Colon & Rectal Surgery all have the least prescriptions at 11 each.
 
 --     d. **Difficult Bonus:** *Do not attempt until you have solved all other problems!* For each specialty, report the percentage of total claims by that specialty which are for opioids. Which specialties have a high percentage of opioids?
+WITH total_claim AS (
+SELECT SUM(total_claim_count) AS total
+FROM prescription
+	INNER JOIN drug
+	USING(drug_name)
+	INNER JOIN prescriber
+	USING(npi)
+WHERE opioid_drug_flag = 'Y'
+)
+SELECT specialty_description,
+ROUND(SUM(total_claim_count)/total_claim.total*100,4) AS pct
+FROM prescriber
+	LEFT JOIN prescription
+	USING (npi)
+	LEFT JOIN drug
+	USING (drug_name)
+	CROSS JOIN total_claim
+WHERE opioid_drug_flag = 'Y'
+GROUP BY specialty_description, total_claim.total
+ORDER BY SUM(total_claim_count)/total_claim.total*100 DESC;
 
 -- 3. 
 --     a. Which drug (generic_name) had the highest total drug cost?
