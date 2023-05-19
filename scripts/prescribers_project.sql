@@ -1,25 +1,27 @@
 -- 1. 
 --     a. Which prescriber had the highest total number of claims (totaled over all drugs)? Report the npi and the total number of claims.
-SELECT npi, total_claim_count
+SELECT npi, SUM(total_claim_count)
 FROM prescriber
 	INNER JOIN prescription
 	USING (npi)
-ORDER BY total_claim_count DESC
+GROUP BY npi
+ORDER BY SUM(total_claim_count) DESC
 LIMIT 1;
 
---Prescriber 1912011792 has the most claims at 4,538
+--Prescriber 1881634483 has the most claims at 99,707
     
 --     b. Repeat the above, but this time report the nppes_provider_first_name, nppes_provider_last_org_name,  specialty_description, and the total number of claims.
 SELECT nppes_provider_first_name, 	 nppes_provider_last_org_name, 
 specialty_description, 
-total_claim_count
+SUM(total_claim_count)
 FROM prescriber
 	INNER JOIN prescription
 	USING (npi)
-ORDER BY total_claim_count DESC
+GROUP BY nppes_provider_first_name, nppes_provider_last_org_name, specialty_description
+ORDER BY SUM(total_claim_count) DESC
 LIMIT 1;
 
---WE find out that the prescribers name from part A is David Coffey and he specializes in family practice
+--WE find out that the prescribers name from part A is Bruce Pendley that specializes in family practice
 
 -- 2. 
 --     a. Which specialty had the most total number of claims (totaled over all drugs)?
@@ -54,9 +56,9 @@ FROM prescriber
 	LEFT JOIN prescription
 	USING (npi)
 GROUP BY specialty_description
-ORDER BY SUM(total_claim_count);
+ORDER BY SUM(total_claim_count) DESC;
 
---No. Thoracic Surgery, Clinical Psychologist and Colon & Rectal Surgery all have the least prescriptions at 11 each.
+--Yes. 15 specialties did not match up and returned null.
 
 --     d. **Difficult Bonus:** *Do not attempt until you have solved all other problems!* For each specialty, report the percentage of total claims by that specialty which are for opioids. Which specialties have a high percentage of opioids?
 WITH total_claim AS (
@@ -90,26 +92,19 @@ FROM drug
 GROUP BY generic_name
 ORDER BY SUM(total_drug_cost) DESC;
 
---Insulin Glargine had the highest toal drug cost at 104,264,066.35 monies
+--Insulin Glargine had the highest toal drug cost at 104,264,066.35 
 
 --     b. Which drug (generic_name) has the hightest total cost per day? **Bonus: Round your cost per day column to 2 decimal places. Google ROUND to see how this works.**
+
 SELECT generic_name,
-ROUND(SUM(total_drug_cost)/365, 2) AS cost_per_day
+ROUND(SUM(total_drug_cost)/SUM(total_day_supply), 2) AS cost_per_day
 FROM drug
 	INNER JOIN prescription
 	USING (drug_name)
 GROUP BY generic_name
-ORDER BY SUM(total_drug_cost) DESC;
+ORDER BY cost_per_day DESC;
 
-SELECT generic_name,
-ROUND(SUM(total_drug_cost)/total_day_supply, 2) AS cost_per_day
-FROM drug
-	INNER JOIN prescription
-	USING (drug_name)
-GROUP BY generic_name, total_day_supply
-ORDER BY SUM(total_drug_cost) DESC;
-
---Insulin Glargine has the highest drug cost per day at 285,654.98 monies a day.
+--C1 esterase inhibitor has the highest cost per day at 3,495.22 dollars
 
 -- 4. 
 --     a. For each drug in the drug table, return the drug name and then a column named 'drug_type' which says 'opioid' for drugs which have opioid_drug_flag = 'Y', says 'antibiotic' for those drugs which have antibiotic_drug_flag = 'Y', and says 'neither' for all other drugs.
@@ -135,21 +130,32 @@ ORDER BY SUM(total_drug_cost) DESC;
 
 -- 5. 
 --     a. How many CBSAs are in Tennessee? **Warning:** The cbsa table contains information for all states, not just Tennessee.
-SELECT COUNT(*)
+SELECT COUNT(DISTINCT cbsaname)
 FROM cbsa
-WHERE cbsaname LIKE '%TN';
+WHERE cbsaname LIKE '%TN%';
 
---There are 33 cbsa's in Tennessee
+--10
 
 --     b. Which cbsa has the largest combined population? Which has the smallest? Report the CBSA name and total population.
-SELECT cbsaname,
+(SELECT cbsaname,
 SUM(population) AS total_pop
 FROM cbsa
-	LEFT JOIN population
+	INNER JOIN population
 	USING(fipscounty)
 WHERE population IS NOT NULL
 GROUP BY cbsaname
-ORDER BY SUM(population) DESC;
+ORDER BY SUM(population) DESC
+LIMIT 1)
+UNION
+(SELECT cbsaname,
+SUM(population) AS total_pop
+FROM cbsa
+	INNER JOIN population
+	USING(fipscounty)
+WHERE population IS NOT NULL
+GROUP BY cbsaname
+ORDER BY SUM(population) ASC
+LIMIT 1)
 
 --Nashville-Davidson-Murfreesboro-Franklin, TN has the largest combined population at 1,830,410 and Morristown, TN has the lowest combined population at 116,352
 
@@ -210,16 +216,16 @@ AND opioid_drug_flag = 'Y';
 --     b. Next, report the number of claims per drug per prescriber. Be sure to include all combinations, whether or not the prescriber had any claims. You should report the npi, the drug name, and the number of claims (total_claim_count).
 SELECT p.npi,
 d.drug_name,
-SUM(p2.total_claim_count) AS total_claim_count
+p2.total_claim_count AS total_claim_count
 FROM prescriber AS p
 	CROSS JOIN drug AS d
 	LEFT JOIN prescription AS p2
 	ON d.drug_name = p2.drug_name
+	AND p.npi = p2.npi
 WHERE specialty_description = 'Pain Management'
 AND nppes_provider_city = 'NASHVILLE'
 AND opioid_drug_flag = 'Y'
-GROUP BY p.npi, d.drug_name
-ORDER BY SUM(p2.total_claim_count) DESC;
+ORDER BY drug_name;
 
 SELECT npi,
 drug_name,
@@ -236,16 +242,16 @@ AND opioid_drug_flag = 'Y');
 --     c. Finally, if you have not done so already, fill in any missing values for total_claim_count with 0. Hint - Google the COALESCE function.
 SELECT p.npi,
 d.drug_name,
-COALESCE(SUM(p2.total_claim_count),0) AS total_claim_count
+COALESCE(p2.total_claim_count,0) AS total_claim_count
 FROM prescriber AS p
 	CROSS JOIN drug AS d
 	LEFT JOIN prescription AS p2
 	ON d.drug_name = p2.drug_name
+	AND p.npi = p2.npi
 WHERE specialty_description = 'Pain Management'
 AND nppes_provider_city = 'NASHVILLE'
 AND opioid_drug_flag = 'Y'
-GROUP BY p.npi, d.drug_name
-ORDER BY SUM(p2.total_claim_count) DESC;
+ORDER BY drug_name;
 
 --BONUS
 -- 1. How many npi numbers appear in the prescriber table but not in the prescription table?
@@ -285,7 +291,7 @@ FROM drug
 	CROSS JOIN prescriber
 WHERE specialty_description = 'Family Practice'
 GROUP BY generic_name
-UNION
+
 SELECT generic_name,
 COUNT(generic_name)
 FROM drug
